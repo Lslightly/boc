@@ -55,7 +55,7 @@ func AsCownPtr[T any](ptr cownIface) CownPtr[T] {
 	if cown, ok := ptr.(CownPtr[T]); ok {
 		return cown
 	}
-	var zero T
+	var zero CownPtr[T]
 	panic(fmt.Errorf("convertion from interface{%s} to %T failed", reflect.TypeOf(ptr).String(), zero))
 }
 

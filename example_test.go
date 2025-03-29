@@ -118,5 +118,5 @@ func ExampleTypeCheckHelper() {
 	})
 	TypeCheckWait()
 	// Output:
-	// convertion from interface{boc.CownPtr[int]} to bool failed
+	// convertion from interface{boc.CownPtr[int]} to boc.CownPtr[bool] failed
 }
