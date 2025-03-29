@@ -1,5 +1,7 @@
 # Behaviour-Oriented Concurrency
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/Lslightly/boc.svg)](https://pkg.go.dev/github.com/Lslightly/boc)
+
 Package boc is a Go implementation of [paper] "When Concurrency Matters: Behaviour-Oriented Concurrency" in OOPSLA2023.
 
 See [Documentation] for more details.
