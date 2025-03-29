@@ -1,8 +1,10 @@
 package boc
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
+	"slices"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -141,69 +143,69 @@ func fibonacci(n int) int {
 }
 
 // TODO: not passed yet
-// func BenchmarkMergeSort(b *testing.B) {
-// 	ch := make(chan bool)
-// 	go func() {
-// 		arr1 := []uint64{2, 3, 1, 4}
-// 		res1 := mergeSort(arr1)
-// 		slices.Sort(arr1)
-// 		if !slices.Equal(arr1, res1) {
-// 			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr1, arr1, res1))
-// 		}
+func BenchmarkMergeSort(b *testing.B) {
+	ch := make(chan bool)
+	go func() {
+		arr1 := []uint64{2, 3, 1, 4}
+		res1 := mergeSort(arr1)
+		slices.Sort(arr1)
+		if !slices.Equal(arr1, res1) {
+			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr1, arr1, res1))
+		}
 
-// 		arr2 := []uint64{3, 4, 2, 1, 8, 5, 6, 7}
-// 		res2 := mergeSort(arr2)
-// 		slices.Sort(arr2)
-// 		if !slices.Equal(arr2, res2) {
-// 			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr2, arr2, res2))
-// 		}
+		arr2 := []uint64{3, 4, 2, 1, 8, 5, 6, 7}
+		res2 := mergeSort(arr2)
+		slices.Sort(arr2)
+		if !slices.Equal(arr2, res2) {
+			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr2, arr2, res2))
+		}
 
-// 		res2_ := mergeSort(arr2)
-// 		if !slices.Equal(arr2, res2_) {
-// 			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr2, arr2, res2_))
-// 		}
+		res2_ := mergeSort(arr2)
+		if !slices.Equal(arr2, res2_) {
+			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr2, arr2, res2_))
+		}
 
-// 		arr3 := arr2
-// 		arr3 = append(arr3, arr3...)
-// 		arr3 = append(arr3, arr3...)
-// 		arr3 = append(arr3, arr3...)
-// 		res3 := mergeSort(arr3)
-// 		slices.Sort(arr3)
-// 		if !slices.Equal(arr3, res3) {
-// 			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr3, arr3, res3))
-// 		}
+		arr3 := arr2
+		arr3 = append(arr3, arr3...)
+		arr3 = append(arr3, arr3...)
+		arr3 = append(arr3, arr3...)
+		res3 := mergeSort(arr3)
+		slices.Sort(arr3)
+		if !slices.Equal(arr3, res3) {
+			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr3, arr3, res3))
+		}
 
-// 		arr4 := make([]uint64, 0, 1024)
-// 		for i := 1023; i >= 0; i-- {
-// 			arr4 = append(arr4, uint64(i))
-// 		}
-// 		res4 := mergeSort(arr4)
-// 		slices.Sort(arr4)
-// 		if !slices.Equal(arr4, res4) {
-// 			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr4, arr4, res4))
-// 		}
+		arr4 := make([]uint64, 0, 1024)
+		for i := 1023; i >= 0; i-- {
+			arr4 = append(arr4, uint64(i))
+		}
+		res4 := mergeSort(arr4)
+		slices.Sort(arr4)
+		if !slices.Equal(arr4, res4) {
+			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr4, arr4, res4))
+		}
 
-// 		ch <- true
-// 	}()
-// 	<-ch
-// }
+		ch <- true
+	}()
+	<-ch
+}
 
 // TODO: not passed yet
-// func TestHardMergeSort(t *testing.T) {
-// 	ch := make(chan bool)
-// 	go func() {
-// 		arr2 := []uint64{3, 4, 2, 1, 8, 5, 6, 7}
-// 		res2 := mergeSort(arr2)
-// 		slices.Sort(arr2)
-// 		if !slices.Equal(arr2, res2) {
-// 			panic(fmt.Sprintf("%v != boc get %v", arr2, res2))
-// 		}
-// 		ch <- true
-// 	}()
-// 	<-ch
-// }
+func TestHardMergeSort(t *testing.T) {
+	ch := make(chan bool)
+	go func() {
+		arr2 := []uint64{3, 4, 2, 1, 8, 5, 6, 7}
+		res2 := mergeSort(arr2)
+		slices.Sort(arr2)
+		if !slices.Equal(arr2, res2) {
+			panic(fmt.Sprintf("%v != boc get %v", arr2, res2))
+		}
+		ch <- true
+	}()
+	<-ch
+}
 
-func mergeSortInner(idx, step_size, n uint64, boc_arr []CownPtr[uint64], boc_finish []CownPtr[uint64], sender chan []uint64) {
+func mergeSortInner(idx, step_size, n uint64, boc_arr []CownPtr[uint64], boc_finish []CownPtr[uint64], sender chan []uint64, vec_ch chan bool) {
 	if idx == 0 {
 		return
 	}
@@ -214,7 +216,15 @@ func mergeSortInner(idx, step_size, n uint64, boc_arr []CownPtr[uint64], boc_fin
 	bocs := boc_arr[from:to]
 	bocs = append(bocs, boc_finish[idx], boc_finish[idx*2], boc_finish[idx*2+1])
 
-	WhenVec(bocs, func(content ...*uint64) {
+	When(CownPtrVec[uint64](bocs).ToIfaceVec(), func(cownIfaceVec CownIfaceVec) {
+		cowns := make([]CownPtr[uint64], 0, len(cownIfaceVec))
+		for _, iface := range cownIfaceVec {
+			cowns = append(cowns, AsCownPtr[uint64](iface))
+		}
+		content := make([]*uint64, 0, len(cownIfaceVec))
+		for _, cown := range cowns {
+			content = append(content, cown.AddrOfValue())
+		}
 		left_and_right_sorted := (*content[step_size+1] == 1) && (*content[step_size+2] == 1)
 		if !left_and_right_sorted || *content[step_size] == 1 {
 			// If both subarrays are not ready or we already sorted for this range, skip.
@@ -224,21 +234,34 @@ func mergeSortInner(idx, step_size, n uint64, boc_arr []CownPtr[uint64], boc_fin
 		lo := uint64(0)
 		hi := uint64(step_size / 2)
 		res := make([]uint64, 0)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
 		for uint64(len(res)) < step_size {
-			if lo >= step_size/2 || (hi < step_size && *content[lo] > *content[hi]) {
-				res = append(res, *content[hi])
-				hi += 1
-			} else {
-				res = append(res, *content[lo])
-				lo += 1
+			select {
+			case <-ctx.Done():
+				fmt.Println(cowns[0].inner.curb, "timeout")
+				sender <- []uint64{1}
+				return
+			default:
+				if lo >= step_size/2 || (hi < step_size && *content[lo] > *content[hi]) {
+					res = append(res, *content[hi])
+					hi += 1
+				} else {
+					res = append(res, *content[lo])
+					lo += 1
+				}
 			}
 		}
-		for i := range step_size {
+
+		for i := uint64(0); i < step_size; i++ {
 			*content[i] = res[i]
 		}
 
 		// Signal that we have sorted the subarray [from, to).
 		*content[step_size] = 1
+
+		vec_ch <- true
 
 		// If the sorting process is completed send a signal to the main thread.
 		if idx == 1 {
@@ -247,8 +270,8 @@ func mergeSortInner(idx, step_size, n uint64, boc_arr []CownPtr[uint64], boc_fin
 		}
 
 		// Recursively sort the larger subarray (bottom up)
-		mergeSortInner(idx/2, step_size*2, n, boc_arr, boc_finish, sender)
-	}, DefaultPostFn)
+		mergeSortInner(idx/2, step_size*2, n, boc_arr, boc_finish, sender, vec_ch)
+	})
 }
 
 func mergeSort(array []uint64) []uint64 {
@@ -267,18 +290,35 @@ func mergeSort(array []uint64) []uint64 {
 	}
 
 	finish_ch := make(chan []uint64)
+	defer close(finish_ch)
+	vec_ch := make(chan bool)
+	defer close(vec_ch)
+	when1_ch := make(chan bool)
+	defer close(when1_ch)
 
-	for i := range n {
+	for i := uint64(0); i < n; i++ {
 		c_finished := boc_finish[i+n]
 		When1(c_finished, func(finished *uint64) {
 			// Signal that the sorting of subarray for [i, i+1) is finished.
 			*finished = 1
 
-			mergeSortInner(uint64((n+i)/2), 2, n, boc_arr, boc_finish, finish_ch)
+			mergeSortInner(uint64((n+i)/2), 2, n, boc_arr, boc_finish, finish_ch, vec_ch)
+			when1_ch <- true
 		}, DefaultPostFn)
 	}
 
-	return <-finish_ch
+	for {
+		select {
+		case <-when1_ch:
+			// fmt.Println("when1_ch finish")
+		case <-vec_ch:
+			// fmt.Println("vec_ch finish")
+		case res := <-finish_ch:
+			fmt.Println("succ")
+			return res
+		}
+
+	}
 }
 
 func runTransactions(account_cnt, transaction_cnt uint64, use_sleep bool) {

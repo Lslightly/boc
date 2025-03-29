@@ -10,9 +10,13 @@ type cownBase interface {
 	getLast() *atomic.Pointer[request]
 }
 
+var glbCownId atomic.Int64
+
 type cown[T any] struct {
 	last  atomic.Pointer[request]
 	value T
+	id    int64
+	curb  *behavior
 }
 
 func (c *cown[T]) getLast() *atomic.Pointer[request] {
@@ -35,8 +39,14 @@ func NewCownPtr[T any](value T) CownPtr[T] {
 		inner: &cown[T]{
 			last:  atomic.Pointer[request]{},
 			value: value,
+			id:    glbCownId.Add(1),
 		},
 	}
+}
+
+// String returns a string representation of the [CownPtr].
+func (ptr CownPtr[T]) String() string {
+	return fmt.Sprintf("c[%T]%d", ptr.inner.value, ptr.inner.id)
 }
 
 // [CownPtr.AddrOfValue] returns the address of the value inside the [CownPtr].
@@ -45,8 +55,13 @@ func (ptr CownPtr[T]) AddrOfValue() *T {
 	return &ptr.inner.value
 }
 
+func (ptr CownPtr[T]) storeBehavior(curb *behavior) {
+	ptr.inner.curb = curb
+}
+
 type cownIface interface {
 	requests() []*request
+	storeBehavior(*behavior)
 }
 
 // AsCownPtr convert from cownIface to CownPtr[T].
@@ -92,4 +107,10 @@ func (vec CownIfaceVec) requests() []*request {
 		requests = append(requests, cown.requests()...)
 	}
 	return requests
+}
+
+func (vec CownIfaceVec) storeBehavior(b *behavior) {
+	for _, cown := range vec {
+		cown.storeBehavior(b)
+	}
 }
