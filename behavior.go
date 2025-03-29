@@ -53,7 +53,9 @@ func newBehavior(f func(CownIfaceVec), cowns CownIfaceVec) *behavior {
 	return b
 }
 func (b *behavior) schedule() {
-	fmt.Println("schedule", b, "with", len(b.requests), "requests", b.requests)
+	if debug {
+		fmt.Println("schedule", b, "with", len(b.requests), "requests", b.requests)
+	}
 	for _, r := range b.requests {
 		r.startEnqueue(b)
 	}
@@ -71,16 +73,24 @@ func (b *behavior) resolveOne() {
 		before := time.Now()
 		defer func() {
 			if r := recover(); r != nil {
-				fmt.Println("behavior thunk panic", b)
+				if debug {
+					fmt.Println("behavior thunk panic", b)
+				}
 			}
 			for _, r := range b.requests {
-				fmt.Println(b, "release", r)
+				if debug {
+					fmt.Println(b, "release", r)
+				}
 				r.release()
 			}
 			d := time.Since(before)
-			fmt.Println("done", b, "time:", d)
+			if debug {
+				fmt.Println("done", b, "time:", d)
+			}
 		}()
-		fmt.Println("start", b)
+		if debug {
+			fmt.Println("start", b)
+		}
 		b.thunk()
 	}()
 }

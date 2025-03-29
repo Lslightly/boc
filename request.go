@@ -43,11 +43,15 @@ func (r *request) startEnqueue(behavior *behavior) {
 		for !prev.scheduled.Load() {
 			if first {
 				first = false
-				fmt.Println(r, "waiting", prev, "to be scheduled")
+				if debug {
+					fmt.Println(r, "waiting", prev, "to be scheduled")
+				}
 			}
 		}
 		if !first {
-			fmt.Println(r, "waiting succ")
+			if debug {
+				fmt.Println(r, "waiting succ")
+			}
 		}
 		prev.next.Store(behavior)
 		return
@@ -58,7 +62,9 @@ func (r *request) startEnqueue(behavior *behavior) {
 
 func (r *request) finishEnqueue() {
 	r.scheduled.Store(true)
-	fmt.Println("scheduled", r)
+	if debug {
+		fmt.Println("scheduled", r)
+	}
 }
 
 func (r *request) release() {
@@ -67,7 +73,9 @@ func (r *request) release() {
 			return
 		}
 		for r.next.Load() == nil {
-			fmt.Println(r, "'s next is nil, waiting for it to be set")
+			if debug {
+				fmt.Println(r, "'s next is nil, waiting for it to be set")
+			}
 		}
 	}
 	b := r.next.Load()
@@ -77,5 +85,7 @@ func (r *request) release() {
 }
 
 func debugRequestResolveBehavior(r *request, b *behavior) {
-	fmt.Println(r, ": --", b, "remaining", b.count.Load()-1, "/total", len(b.requests))
+	if debug {
+		fmt.Println(r, ": --", b, "remaining", b.count.Load()-1, "/total", len(b.requests))
+	}
 }
