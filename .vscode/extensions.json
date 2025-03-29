@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "golang.go",
+        "hbenl.vscode-test-explorer",
+        "ms-vscode.test-adapter-converter",
+    ]
+}
