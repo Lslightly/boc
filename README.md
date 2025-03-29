@@ -6,4 +6,4 @@ This package is rewritten from https://github.com/Lslightly-courses/cs431/blob/m
 
 Use `go doc -all` to see all documentation.
 
-> Thanks for authors of the [course cs431](https://github.com/kaist-cp/cs431) and [paper](https://dl.acm.org/doi/10.1145/3622852).
+> Thanks for authors of the [course cs431](https://github.com/kaist-cp/cs431) and [paper](https://dl.acm.org/doi/10.1145/3622852). I'm just an implementer.
