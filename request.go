@@ -14,9 +14,10 @@ type request struct {
 	target    cownBase                 // target cown the request wants to access
 
 	// for debug use
-	prev_req *request // previous request in the queue
-	id       int64    // request id for debug use
-	done     bool     // request has been released
+	prev_req        *request  // previous request in the queue
+	id              int64     // request id for debug use
+	done            bool      // request has been released
+	resolveBehavior *behavior // behavior to be resolved
 }
 
 // String returns a string representation of the request
@@ -58,6 +59,8 @@ func (r *request) startEnqueue(behavior *behavior) {
 	}
 	debugRequestResolveBehavior(r, behavior)
 	behavior.resolveOne()
+	r.resolveBehavior = behavior
+	r.done = true
 }
 
 func (r *request) finishEnqueue() {
@@ -81,6 +84,7 @@ func (r *request) release() {
 	b := r.next.Load()
 	debugRequestResolveBehavior(r, b)
 	b.resolveOne()
+	r.resolveBehavior = b
 	r.done = true
 }
 

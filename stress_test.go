@@ -37,9 +37,9 @@ func BenchmarkStressMergeSort(b *testing.B) {
 	for i, ch := range chs {
 		logsize := LOGSZ_LO + i%(LOGSZ_HI-LOGSZ_LO)
 		le := 1 << logsize
-		arr := make([]uint64, le)
+		arr := make([]int, le)
 		for j := range le {
-			arr[j] = rand.Uint64()
+			arr[j] = rand.Int()
 		}
 
 		go func() {
