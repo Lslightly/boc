@@ -1,7 +1,6 @@
 package boc
 
 import (
-	"os"
 	"sync"
 )
 
@@ -60,12 +59,6 @@ func WhenVec[T any](cowns CownPtrVec[T], fn func(content ...*T), postFn func()) 
 	When(cowns.ToIfaceVec(), genVec(fn, postFn))
 }
 
-func envHasTypeCheck() bool {
-	s := os.Getenv("TYPE_CHECK")
-	return s != "" && s != "0" && s != "false"
-}
-
-var typecheck bool = envHasTypeCheck()
 var wg sync.WaitGroup
 
 // Use [TypeCheckHelper] to skip other operations, remaining only [When] statements.

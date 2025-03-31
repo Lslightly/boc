@@ -3,6 +3,7 @@ package boc
 import (
 	"fmt"
 	"math/rand"
+	"slices"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -140,145 +141,283 @@ func fibonacci(n int) int {
 	return <-ch
 }
 
-// TODO: not passed yet
-// func BenchmarkMergeSort(b *testing.B) {
-// 	ch := make(chan bool)
-// 	go func() {
-// 		arr1 := []uint64{2, 3, 1, 4}
-// 		res1 := mergeSort(arr1)
-// 		slices.Sort(arr1)
-// 		if !slices.Equal(arr1, res1) {
-// 			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr1, arr1, res1))
-// 		}
+func assertWhenMergeSort(arr []int) {
+	res := mergeSort(arr)
+	slices.Sort(arr)
+	if !slices.Equal(arr, res) {
+		panic(fmt.Sprintf("%v != boc get %v", arr, res))
+	}
+}
 
-// 		arr2 := []uint64{3, 4, 2, 1, 8, 5, 6, 7}
-// 		res2 := mergeSort(arr2)
-// 		slices.Sort(arr2)
-// 		if !slices.Equal(arr2, res2) {
-// 			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr2, arr2, res2))
-// 		}
+func testWhenMergeSort(arr []int) {
+	ch := make(chan bool)
+	go func() {
+		assertWhenMergeSort(arr)
+		ch <- true
+	}()
+	<-ch
+}
 
-// 		res2_ := mergeSort(arr2)
-// 		if !slices.Equal(arr2, res2_) {
-// 			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr2, arr2, res2_))
-// 		}
+func BenchmarkMergeSort(b *testing.B) {
+	ch := make(chan bool)
+	go func() {
+		assertWhenMergeSort([]int{2, 3, 1, 4})
 
-// 		arr3 := arr2
-// 		arr3 = append(arr3, arr3...)
-// 		arr3 = append(arr3, arr3...)
-// 		arr3 = append(arr3, arr3...)
-// 		res3 := mergeSort(arr3)
-// 		slices.Sort(arr3)
-// 		if !slices.Equal(arr3, res3) {
-// 			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr3, arr3, res3))
-// 		}
+		arr2 := []int{3, 4, 2, 1, 8, 5, 6, 7}
+		assertWhenMergeSort(arr2)
+		slices.Sort(arr2)
 
-// 		arr4 := make([]uint64, 0, 1024)
-// 		for i := 1023; i >= 0; i-- {
-// 			arr4 = append(arr4, uint64(i))
-// 		}
-// 		res4 := mergeSort(arr4)
-// 		slices.Sort(arr4)
-// 		if !slices.Equal(arr4, res4) {
-// 			panic(fmt.Sprintf("mergeSort(%v) should be %v, but boc get %v", arr4, arr4, res4))
-// 		}
+		assertWhenMergeSort(arr2)
 
-// 		ch <- true
-// 	}()
-// 	<-ch
-// }
+		arr3 := arr2
+		arr3 = append(arr3, arr3...)
+		arr3 = append(arr3, arr3...)
+		arr3 = append(arr3, arr3...)
+		assertWhenMergeSort(arr3)
 
-// TODO: not passed yet
-// func TestHardMergeSort(t *testing.T) {
-// 	ch := make(chan bool)
-// 	go func() {
-// 		arr2 := []uint64{3, 4, 2, 1, 8, 5, 6, 7}
-// 		res2 := mergeSort(arr2)
-// 		slices.Sort(arr2)
-// 		if !slices.Equal(arr2, res2) {
-// 			panic(fmt.Sprintf("%v != boc get %v", arr2, res2))
-// 		}
-// 		ch <- true
-// 	}()
-// 	<-ch
-// }
+		arr4 := make([]int, 0, 1024)
+		for i := 1023; i >= 0; i-- {
+			arr4 = append(arr4, i)
+		}
+		assertWhenMergeSort(arr4)
 
-func mergeSortInner(idx, step_size, n uint64, boc_arr []CownPtr[uint64], boc_finish []CownPtr[uint64], sender chan []uint64) {
-	if idx == 0 {
-		return
+		ch <- true
+	}()
+	<-ch
+}
+
+func TestMergeSort1(t *testing.T) {
+	testWhenMergeSort([]int{3})
+}
+
+func TestMergeSort2(t *testing.T) {
+	testWhenMergeSort([]int{3, 2})
+}
+
+func TestMergeSort3(t *testing.T) {
+	testWhenMergeSort([]int{3, 2, 1})
+}
+
+func TestMergeSort4(t *testing.T) {
+	testWhenMergeSort([]int{3, 2, 1, 4})
+}
+
+func TestMergeSort5(t *testing.T) {
+	testWhenMergeSort([]int{3, 2, 1, 4, 5})
+}
+
+func TestMergeSort6(t *testing.T) {
+	testWhenMergeSort([]int{2, 3, 4, 8, 6, 10})
+}
+
+func TestMergeSort7(t *testing.T) {
+	testWhenMergeSort([]int{3, 4, 2, 1, 8, 5, 6})
+}
+
+func TestMergeSort8(t *testing.T) {
+	testWhenMergeSort([]int{3, 4, 2, 1, 8, 5, 6, 7})
+}
+
+func BenchmarkMergeSortRandom(b *testing.B) {
+	for b.Loop() {
+		for l := 9; l < 1000; l++ {
+			arr := make([]int, l)
+			for i := range l {
+				arr[i] = rand.Intn(l)
+			}
+			testWhenMergeSort(arr)
+		}
+	}
+}
+
+type Step struct {
+	start     int
+	step_size int
+	n         int
+}
+
+func (s Step) String() string {
+	return fmt.Sprintf("(%d, %d)", s.start, s.step_size)
+}
+
+func (s Step) left_right() (left, right Step) {
+	half := s.step_size / 2
+	start := s.start
+	left = Step{start, half, s.n}
+	right = Step{start + half, half, s.n}
+	return
+}
+
+func (s Step) debugRange() []int {
+	r := make([]int, 0, s.step_size)
+	for i := s.start; i < s.start+s.step_size && i < s.n; i++ {
+		r = append(r, i)
+	}
+	return r
+}
+
+func (s Step) debugWaiting() {
+	if debug {
+		left, right := s.left_right()
+		if right.start >= s.n {
+			fmt.Println(s, "waiting for", left, "+", s.debugRange())
+		} else {
+			fmt.Println(s, "waiting for", left, right, "+", s.debugRange())
+		}
+	}
+}
+
+func (s Step) release() string {
+	left, right := s.left_right()
+	return fmt.Sprintln(s, "release", left, right, "+", s.debugRange())
+}
+
+func mergeSortInner(start, step_size, n int, arr []*int, boc_map_finish map[Step]CownPtr[int], sender chan []int, step_ch chan Step) {
+	curStep := Step{start, step_size, n}
+	leftStep, rightStep := curStep.left_right()
+
+	hasRight := true
+	if rightStep.start >= n { // out of range
+		hasRight = false
 	}
 
-	from := idx*step_size - n
-	to := (idx+1)*step_size - n
+	curStep.debugWaiting()
 
-	bocs := boc_arr[from:to]
-	bocs = append(bocs, boc_finish[idx], boc_finish[idx*2], boc_finish[idx*2+1])
+	end := min(start+step_size, n)
+	arrToSort := arr[start:end]
+	merge := func(arrToSort []*int) []int {
+		arrLen := len(arrToSort)
 
-	WhenVec(bocs, func(content ...*uint64) {
-		left_and_right_sorted := (*content[step_size+1] == 1) && (*content[step_size+2] == 1)
-		if !left_and_right_sorted || *content[step_size] == 1 {
-			// If both subarrays are not ready or we already sorted for this range, skip.
+		lo := 0
+		hi := step_size / 2
+		res := make([]int, 0, arrLen)
+		for range arrLen {
+			if lo >= step_size/2 {
+				res = append(res, *arrToSort[hi])
+				hi += 1
+				continue
+			}
+			if hi >= arrLen {
+				res = append(res, *arrToSort[lo])
+				lo += 1
+				continue
+			}
+			if *arrToSort[lo] > *arrToSort[hi] {
+				res = append(res, *arrToSort[hi])
+				hi += 1
+				continue
+			}
+			res = append(res, *arrToSort[lo])
+			lo += 1
+		}
+		return res
+	}
+
+	finishBocs := make([]CownPtr[int], 0, 3)
+	if hasRight {
+		finishBocs = append(finishBocs, boc_map_finish[curStep], boc_map_finish[leftStep], boc_map_finish[rightStep])
+	} else {
+		finishBocs = append(finishBocs, boc_map_finish[curStep], boc_map_finish[leftStep])
+	}
+
+	// TODO if add cown version(type is []CownPtr[int]) of arrToSort(type is []*int) to WhenVec, it will get stuck. The reason is unknown yet.
+	WhenVec(finishBocs, func(arrFinish ...*int) {
+		var cur_finish, left_finish, right_finish *int
+		assert_finished := 1
+		right_finish = &assert_finished
+		if hasRight {
+			cur_finish, left_finish, right_finish = arrFinish[0], arrFinish[1], arrFinish[2]
+		} else {
+			cur_finish, left_finish = arrFinish[0], arrFinish[1]
+		}
+		step_ch <- Step{start, step_size, n}
+		// left and right not finished yet
+		if *left_finish == 0 {
+			if debug {
+				fmt.Println(leftStep, "not finished yet", curStep.release())
+			}
+			return
+		}
+		if *right_finish == 0 {
+			if debug {
+				fmt.Println(rightStep, "not finished yet", curStep.release())
+			}
+			return
+		}
+		if *cur_finish == 1 { // cur_finish finished
+			if debug {
+				fmt.Println(curStep, "already finished", curStep.release())
+			}
 			return
 		}
 
-		lo := uint64(0)
-		hi := uint64(step_size / 2)
-		res := make([]uint64, 0)
-		for uint64(len(res)) < step_size {
-			if lo >= step_size/2 || (hi < step_size && *content[lo] > *content[hi]) {
-				res = append(res, *content[hi])
-				hi += 1
-			} else {
-				res = append(res, *content[lo])
-				lo += 1
-			}
-		}
-		for i := range step_size {
-			*content[i] = res[i]
-		}
+		res := merge(arrToSort)
 
-		// Signal that we have sorted the subarray [from, to).
-		*content[step_size] = 1
-
-		// If the sorting process is completed send a signal to the main thread.
-		if idx == 1 {
+		if start == 0 && step_size >= n { // don't write again, just return the result
 			sender <- res
 			return
 		}
+		for i := range res {
+			*arrToSort[i] = res[i] // write back [start:end)
+		}
 
-		// Recursively sort the larger subarray (bottom up)
-		mergeSortInner(idx/2, step_size*2, n, boc_arr, boc_finish, sender)
+		*cur_finish = 1
+		if debug {
+			fmt.Println(curStep, "finished", curStep.release())
+		}
+
+		new_step_size := step_size * 2
+		mergeSortInner(start/new_step_size*new_step_size, new_step_size, n, arr, boc_map_finish, sender, step_ch)
 	}, DefaultPostFn)
 }
 
-func mergeSort(array []uint64) []uint64 {
-	n := uint64(len(array))
+func mergeSort(array []int) []int {
+	n := len(array)
 	if n == 1 {
 		return array
 	}
 
-	boc_arr := make([]CownPtr[uint64], n)
+	tmp_arr := make([]*int, n)
 	for i, v := range array {
-		boc_arr[i] = NewCownPtr(v)
+		tmp := v
+		tmp_arr[i] = &tmp
 	}
-	boc_finish := make([]CownPtr[uint64], 2*n)
-	for i := range 2 * n {
-		boc_finish[i] = NewCownPtr(uint64(0))
+	boc_finish_map := make(map[Step]CownPtr[int])
+	step_size := 1
+	for step_size <= n {
+		for i := 0; i < n; i += step_size {
+			boc_finish_map[Step{i, step_size, n}] = NewCownPtr(0)
+		}
+		step_size *= 2
 	}
-
-	finish_ch := make(chan []uint64)
+	if step_size > n { // for finish
+		boc_finish_map[Step{0, step_size, n}] = NewCownPtr(0)
+	}
+	finish_ch := make(chan []int)
+	defer close(finish_ch)
+	step_ch := make(chan Step)
+	defer close(step_ch)
 
 	for i := range n {
-		c_finished := boc_finish[i+n]
-		When1(c_finished, func(finished *uint64) {
-			// Signal that the sorting of subarray for [i, i+1) is finished.
+		step := Step{i, 1, n}
+		When1(boc_finish_map[step], func(finished *int) {
 			*finished = 1
-
-			mergeSortInner(uint64((n+i)/2), 2, n, boc_arr, boc_finish, finish_ch)
+			if debug {
+				fmt.Println(step, "finished")
+			}
+			mergeSortInner(i/2*2, 2, n, tmp_arr, boc_finish_map, finish_ch, step_ch)
 		}, DefaultPostFn)
 	}
 
-	return <-finish_ch
+	for {
+		select {
+		case <-step_ch:
+		case res := <-finish_ch:
+			return res
+		default:
+			continue
+		}
+	}
 }
 
 func runTransactions(account_cnt, transaction_cnt uint64, use_sleep bool) {
