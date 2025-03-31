@@ -4,6 +4,8 @@
 
 Package boc is a Go implementation of [paper] "When Concurrency Matters: Behaviour-Oriented Concurrency" in OOPSLA2023.
 
+Use `go get -u github.com/Lslightly/boc` to download and upgrade to the latest module.
+
 See [Documentation] for more details.
 
 This package is rewritten from [boc.rs].
