@@ -158,7 +158,6 @@ func testWhenMergeSort(arr []int) {
 	<-ch
 }
 
-// TODO: not passed yet
 func BenchmarkMergeSort(b *testing.B) {
 	ch := make(chan bool)
 	go func() {
@@ -187,7 +186,6 @@ func BenchmarkMergeSort(b *testing.B) {
 	<-ch
 }
 
-// TODO: not passed yet
 func TestMergeSort1(t *testing.T) {
 	testWhenMergeSort([]int{3})
 }
@@ -222,6 +220,18 @@ func TestMergeSort8(t *testing.T) {
 	testWhenMergeSort([]int{3, 4, 2, 1, 8, 5, 6, 7})
 }
 
+func BenchmarkMergeSortRandom(b *testing.B) {
+	for b.Loop() {
+		for l := 9; l < 1000; l++ {
+			arr := make([]int, l)
+			for i := range l {
+				arr[i] = rand.Intn(l)
+			}
+			testWhenMergeSort(arr)
+		}
+	}
+}
+
 type Step struct {
 	start     int
 	step_size int
@@ -249,11 +259,13 @@ func (s Step) debugRange() []int {
 }
 
 func (s Step) debugWaiting() {
-	left, right := s.left_right()
-	if right.start >= s.n {
-		fmt.Println(s, "waiting for", left, "+", s.debugRange())
-	} else {
-		fmt.Println(s, "waiting for", left, right, "+", s.debugRange())
+	if debug {
+		left, right := s.left_right()
+		if right.start >= s.n {
+			fmt.Println(s, "waiting for", left, "+", s.debugRange())
+		} else {
+			fmt.Println(s, "waiting for", left, right, "+", s.debugRange())
+		}
 	}
 }
 
@@ -262,7 +274,7 @@ func (s Step) release() string {
 	return fmt.Sprintln(s, "release", left, right, "+", s.debugRange())
 }
 
-func mergeSortInner(start, step_size, n int, boc_arr []CownPtr[int], boc_map_finish map[Step]CownPtr[int], sender chan []int, step_ch chan Step) {
+func mergeSortInner(start, step_size, n int, arr []*int, boc_map_finish map[Step]CownPtr[int], sender chan []int, step_ch chan Step) {
 	curStep := Step{start, step_size, n}
 	leftStep, rightStep := curStep.left_right()
 
@@ -274,75 +286,90 @@ func mergeSortInner(start, step_size, n int, boc_arr []CownPtr[int], boc_map_fin
 	curStep.debugWaiting()
 
 	end := min(start+step_size, n)
-	bocs := boc_arr[start:end]
-
-	if !hasRight {
-		bocs = append(bocs, boc_map_finish[curStep], boc_map_finish[leftStep])
-	} else {
-		bocs = append(bocs, boc_map_finish[curStep], boc_map_finish[leftStep], boc_map_finish[rightStep])
-	}
-	WhenVec(bocs, func(arr_finish ...*int) {
-		all_len := len(arr_finish)
-		var cur_finish, left_finish, right_finish *int
-		one := 1
-		right_finish = &one
-		if hasRight {
-			cur_finish, left_finish, right_finish = arr_finish[all_len-3], arr_finish[all_len-2], arr_finish[all_len-1]
-		} else {
-			cur_finish, left_finish = arr_finish[all_len-2], arr_finish[all_len-1]
-		}
-		step_ch <- Step{start, step_size, n}
-		// left and right not finished yet
-		if *left_finish == 0 {
-			fmt.Println(leftStep, "not finished yet", curStep.release())
-			return
-		}
-		if *right_finish == 0 {
-			fmt.Println(rightStep, "not finished yet", curStep.release())
-			return
-		}
-		if *cur_finish == 1 { // cur_finish finished
-			fmt.Println(curStep, "already finished", curStep.release())
-			return
-		}
-		arrToBeSorted := arr_finish[:all_len-3]
-		arrLen := len(arrToBeSorted)
+	arrToSort := arr[start:end]
+	merge := func(arrToSort []*int) []int {
+		arrLen := len(arrToSort)
 
 		lo := 0
 		hi := step_size / 2
 		res := make([]int, 0, arrLen)
 		for range arrLen {
 			if lo >= step_size/2 {
-				res = append(res, *arr_finish[hi])
+				res = append(res, *arrToSort[hi])
 				hi += 1
 				continue
 			}
 			if hi >= arrLen {
-				res = append(res, *arr_finish[lo])
+				res = append(res, *arrToSort[lo])
 				lo += 1
 				continue
 			}
-			if *arr_finish[lo] > *arr_finish[hi] {
-				res = append(res, *arr_finish[hi])
+			if *arrToSort[lo] > *arrToSort[hi] {
+				res = append(res, *arrToSort[hi])
 				hi += 1
 				continue
 			}
-			res = append(res, *arr_finish[lo])
+			res = append(res, *arrToSort[lo])
 			lo += 1
 		}
-		if start == 0 && step_size >= n {
+		return res
+	}
+
+	finishBocs := make([]CownPtr[int], 0, 3)
+	if hasRight {
+		finishBocs = append(finishBocs, boc_map_finish[curStep], boc_map_finish[leftStep], boc_map_finish[rightStep])
+	} else {
+		finishBocs = append(finishBocs, boc_map_finish[curStep], boc_map_finish[leftStep])
+	}
+
+	// TODO if add cown version(type is []CownPtr[int]) of arrToSort(type is []*int) to WhenVec, it will get stuck. The reason is unknown yet.
+	WhenVec(finishBocs, func(arrFinish ...*int) {
+		var cur_finish, left_finish, right_finish *int
+		assert_finished := 1
+		right_finish = &assert_finished
+		if hasRight {
+			cur_finish, left_finish, right_finish = arrFinish[0], arrFinish[1], arrFinish[2]
+		} else {
+			cur_finish, left_finish = arrFinish[0], arrFinish[1]
+		}
+		step_ch <- Step{start, step_size, n}
+		// left and right not finished yet
+		if *left_finish == 0 {
+			if debug {
+				fmt.Println(leftStep, "not finished yet", curStep.release())
+			}
+			return
+		}
+		if *right_finish == 0 {
+			if debug {
+				fmt.Println(rightStep, "not finished yet", curStep.release())
+			}
+			return
+		}
+		if *cur_finish == 1 { // cur_finish finished
+			if debug {
+				fmt.Println(curStep, "already finished", curStep.release())
+			}
+			return
+		}
+
+		res := merge(arrToSort)
+
+		if start == 0 && step_size >= n { // don't write again, just return the result
 			sender <- res
 			return
 		}
-		for i := range arrLen {
-			*arr_finish[i] = res[i] // write back [start:end)
+		for i := range res {
+			*arrToSort[i] = res[i] // write back [start:end)
 		}
 
 		*cur_finish = 1
-		fmt.Println(curStep, "finished", curStep.release())
+		if debug {
+			fmt.Println(curStep, "finished", curStep.release())
+		}
 
 		new_step_size := step_size * 2
-		mergeSortInner(start/new_step_size*new_step_size, new_step_size, n, boc_arr, boc_map_finish, sender, step_ch)
+		mergeSortInner(start/new_step_size*new_step_size, new_step_size, n, arr, boc_map_finish, sender, step_ch)
 	}, DefaultPostFn)
 }
 
@@ -352,9 +379,10 @@ func mergeSort(array []int) []int {
 		return array
 	}
 
-	boc_arr := make([]CownPtr[int], n)
+	tmp_arr := make([]*int, n)
 	for i, v := range array {
-		boc_arr[i] = NewCownPtr(v)
+		tmp := v
+		tmp_arr[i] = &tmp
 	}
 	boc_finish_map := make(map[Step]CownPtr[int])
 	step_size := 1
@@ -374,10 +402,12 @@ func mergeSort(array []int) []int {
 
 	for i := range n {
 		step := Step{i, 1, n}
-		When2(boc_arr[i], boc_finish_map[step], func(_ *int, finished *int) {
+		When1(boc_finish_map[step], func(finished *int) {
 			*finished = 1
-			fmt.Println(step, "finished")
-			mergeSortInner(i/2*2, 2, n, boc_arr, boc_finish_map, finish_ch, step_ch)
+			if debug {
+				fmt.Println(step, "finished")
+			}
+			mergeSortInner(i/2*2, 2, n, tmp_arr, boc_finish_map, finish_ch, step_ch)
 		}, DefaultPostFn)
 	}
 
