@@ -8,6 +8,8 @@ Use `go get -u github.com/Lslightly/boc` to download and upgrade to the latest m
 
 See [Documentation] for more details.
 
+## Credits
+
 This package is rewritten from [boc.rs].
 The benchmark is provided by [kaist-cp/cs431] and rewritten in Go.
 
