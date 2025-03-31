@@ -194,8 +194,6 @@ func TestMergeSort2(t *testing.T) {
 	testWhenMergeSort([]int{3, 2})
 }
 
-// TODO: got stuck
-// recover runtime error: slice bounds out of range [:5] with capacity 3
 func TestMergeSort3(t *testing.T) {
 	testWhenMergeSort([]int{3, 2, 1})
 }
